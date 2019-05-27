@@ -21,9 +21,4 @@
     <ProjectReference Include="..\Silly.Bank\Silly.Bank.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="IntegrationTests\" />
-    <Folder Include="UnitTests\" />
-  </ItemGroup>
-
 </Project>
