@@ -2,6 +2,6 @@
 {
     public class TransferResult
     {
-        public bool Result { get; internal set; }
+        public bool Result { get; set; }
     }
 }

@@ -59,7 +59,7 @@ namespace Silly.Bank.Tests.Scenarios
         public void ThereIsNotEnoughBalanceInTheAccount(decimal requestedAmount, decimal currentBalance, 
             TestFixture fixture, TransferRequest request, HttpResponseMessage response)
         {
-            $"Given the user request to transfer {requestedAmount}".x(() => {
+            $"Given the user request to transfer {requestedAmount} euros".x(() => {
                 fixture = new TestFixture();
 
                 request = new TransferRequest
@@ -81,7 +81,7 @@ namespace Silly.Bank.Tests.Scenarios
                     });
             });
 
-            $"And the balance of the account is {currentBalance}".x(() =>
+            $"And the balance of the account is {currentBalance} euros".x(() =>
             {
                 fixture.FakeHttpClient
                     .Get<decimal>(Arg.Any<string>())
@@ -103,6 +103,59 @@ namespace Silly.Bank.Tests.Scenarios
 
                 var tranferResult = fixture.ConvertHttpResponseMessageToEntity<TransferResult>(response);
                 tranferResult.Result.ShouldBeFalse();
+            });
+        }
+
+        [Scenario]
+        [Example(1500, 1500)]
+        [Example(1500, 9000)]
+        public void EnoughBalanceInTheAccount(decimal requestedAmount, decimal currentBalance,
+            TestFixture fixture, TransferRequest request, HttpResponseMessage response)
+        {
+            $"Given the user request to transfer {requestedAmount} euros".x(() => {
+                fixture = new TestFixture();
+
+                request = new TransferRequest
+                {
+                    UserId = Guid.NewGuid(),
+                    Ammount = requestedAmount,
+                    FromAccount = "1234567890",
+                    ToAccount = "0987654321"
+                };
+            });
+
+            "And the user is the owner of the account".x(() =>
+            {
+                fixture.FakeHttpClient
+                    .GetList<Account>(Arg.Any<string>())
+                    .Returns(new List<Account>
+                    {
+                        new Account { AccountNumber = "1234567890" }
+                    });
+            });
+
+            $"And the balance of the account is {currentBalance} euros".x(() =>
+            {
+                fixture.FakeHttpClient
+                    .Get<decimal>(Arg.Any<string>())
+                    .Returns(currentBalance);
+            });
+
+            "When the request is being processed".x(async () => {
+
+                var jsonRequest = fixture.ConvertToJsonStringContent(request);
+                response = await fixture.Factory.CreateClient().PostAsync("api/transfers", jsonRequest);
+            });
+
+            "Then the transfer is successful".x(() => {
+                fixture.FakeTranferRepo
+                    .Received()
+                    .MakeTransfer(Arg.Is(requestedAmount), Arg.Is(request.FromAccount), Arg.Is(request.ToAccount));
+
+                response.EnsureSuccessStatusCode();
+
+                var tranferResult = fixture.ConvertHttpResponseMessageToEntity<TransferResult>(response);
+                tranferResult.Result.ShouldBeTrue();
             });
         }
     }
