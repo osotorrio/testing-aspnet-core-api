@@ -5,6 +5,7 @@ using System;
 using NSubstitute;
 using Silly.Bank.Entities;
 using System.Net.Http;
+using Shouldly;
 
 namespace Silly.Bank.Tests.Scenarios
 {
@@ -41,13 +42,15 @@ namespace Silly.Bank.Tests.Scenarios
                 response = await fixture.Factory.CreateClient().PostAsync("api/transfers", jsonRequest);
             });
 
-            "Then the transfer is rejected".x(async () => {
+            "Then the transfer is rejected".x(() => {
                 fixture.FakeTranferRepo
                     .DidNotReceive()
                     .MakeTransfer(Arg.Any<decimal>(), Arg.Any<string>(), Arg.Any<string>());
 
                 response.EnsureSuccessStatusCode();
-                var result = await response.Content.ReadAsStringAsync();
+
+                var tranferResult = fixture.ConvertHttpResponseMessageToEntity<TransferResult>(response);
+                tranferResult.Result.ShouldBeFalse();
             });
         }
     }
